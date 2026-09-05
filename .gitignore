@@ -1,0 +1,31 @@
+# Python 缓存与测试产物
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python 虚拟环境
+.venv/
+venv/
+env/
+
+# IDE 配置
+.idea/
+.vscode/
+
+# 本地研究数据与实验运行结果
+research_data/
+research_runs/
+*.parquet
+*.pt
+*.pth
+*.ckpt
+
+# 日志和临时文件
+*.log
+*.tmp
+*.temp
+
+# 误输入命令产生的空文件
+/--data-root
