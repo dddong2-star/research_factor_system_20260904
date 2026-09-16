@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.behavior import (
+from research_pipeline.common.behavior import (
     build_daily_factor_performance,
     build_rolling_performance_features,
 )

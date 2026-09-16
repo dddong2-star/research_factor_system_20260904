@@ -3,9 +3,9 @@ import json
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.classification import infer_category
-from research_pipeline.research_system.conditional_run import assign_time_splits, run_conditional_evaluation
-from research_pipeline.research_system.cli import build_parser
+from research_pipeline.cli import build_parser
+from research_pipeline.step2_features.classification import infer_category
+from research_pipeline.step2_features.conditional import assign_time_splits, run_conditional_evaluation
 
 
 def test_assign_time_splits_is_chronological_and_covers_all_dates():
@@ -19,6 +19,7 @@ def test_assign_time_splits_is_chronological_and_covers_all_dates():
 
 def test_conditional_cli_exposes_time_split_ratios():
     args = build_parser().parse_args([
+        "step2",
         "conditional",
         "--values-run", "values",
         "--state-run", "states",

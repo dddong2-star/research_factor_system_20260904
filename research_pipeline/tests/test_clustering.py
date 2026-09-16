@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from research_pipeline.research_system.clustering import (
+from research_pipeline.step3_clustering.clustering import (
     fit_behavior_kmeans,
     select_representatives,
 )

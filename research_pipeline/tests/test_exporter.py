@@ -3,7 +3,7 @@ import json
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.exporter import ExportSources, export_snapshot
+from research_pipeline.step1_snapshot.export import ExportSources, export_snapshot
 
 
 def _write_fixture_sources(tmp_path):

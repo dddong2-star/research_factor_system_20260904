@@ -3,7 +3,7 @@ import hashlib
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.io import (
+from research_pipeline.common.io import (
     file_sha256,
     normalize_market_frame,
     validate_unique_keys,

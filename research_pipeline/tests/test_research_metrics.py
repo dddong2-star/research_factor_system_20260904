@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.evaluation import conditional_ic, daily_ic
-from research_pipeline.research_system.features import make_forward_return, market_state_features
+from research_pipeline.step2_features.evaluation import conditional_ic, daily_ic
+from research_pipeline.common.features import make_forward_return, market_state_features
 
 
 def _market():

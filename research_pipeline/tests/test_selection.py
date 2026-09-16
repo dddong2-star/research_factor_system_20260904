@@ -1,6 +1,6 @@
 import pandas as pd
 
-from research_pipeline.research_system.selection import (
+from research_pipeline.step2_features.select import (
     equal_weight_portfolio,
     run_selection,
     score_categories,

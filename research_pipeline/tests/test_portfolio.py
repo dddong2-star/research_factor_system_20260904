@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.portfolio import backtest_long_only
+from research_pipeline.common.portfolio import backtest_long_only
 
 
 def _market(suspended=False):

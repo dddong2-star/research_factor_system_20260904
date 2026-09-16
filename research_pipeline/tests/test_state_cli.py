@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 
-from research_pipeline.research_system.research_run import run_state_analysis
+from research_pipeline.step2_features.states import run_state_analysis
 
 
 def test_run_state_analysis_consumes_snapshot_and_writes_state_table(tmp_path):

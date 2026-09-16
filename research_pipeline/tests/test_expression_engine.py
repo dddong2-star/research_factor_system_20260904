@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from research_pipeline.research_system.expression_engine import ExpressionError, evaluate_expression
-from research_pipeline.research_system.factor_values import materialize_factor_values
+from research_pipeline.common.expression_engine import ExpressionError, evaluate_expression
+from research_pipeline.step2_features.values import materialize_factor_values
 
 
 def _market():

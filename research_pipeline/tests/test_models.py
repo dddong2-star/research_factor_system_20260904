@@ -1,6 +1,6 @@
 import torch
 
-from research_pipeline.research_system.models import FactorRouter, gumbel_topk_mask
+from research_pipeline.common.models import FactorRouter, gumbel_topk_mask
 
 
 def test_gumbel_topk_has_exact_k_in_inference_and_gradient_in_training():
