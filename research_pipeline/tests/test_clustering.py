@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 
 from research_pipeline.step3_clustering.clustering import (
+    _feature_matrix,
+    drop_empty_behavior_factors,
     fit_behavior_kmeans,
     select_representatives,
 )
@@ -29,5 +31,34 @@ def test_kmeans_rejects_more_clusters_than_factor_rows():
         fit_behavior_kmeans(features, n_clusters=3, random_state=1)
     except ValueError as exc:
         assert "n_clusters" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_drop_empty_behavior_factors_keeps_finite_rows():
+    features = pd.DataFrame(
+        {
+            "ic_mean": [1.0, np.nan],
+            "rank_ic_mean": [0.5, np.nan],
+            "slope_mean": [0.2, np.inf],
+        },
+        index=["f1", "f2"],
+    )
+    usable, skipped = drop_empty_behavior_factors(features)
+
+    assert list(usable.index) == ["f1"]
+    assert skipped == ["f2"]
+    assert usable.loc["f1", "ic_mean"] == 1.0
+
+
+def test_feature_matrix_still_rejects_empty_rows():
+    features = pd.DataFrame(
+        {"ic_mean": [1.0, np.nan], "rank_ic_mean": [0.5, np.nan]},
+        index=["f1", "f2"],
+    )
+    try:
+        _feature_matrix(features)
+    except ValueError as exc:
+        assert "each factor needs at least one finite behavior feature" in str(exc)
     else:
         raise AssertionError("expected ValueError")

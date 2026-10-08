@@ -71,11 +71,11 @@
 
 | 文件 | 状态 | 作用与关键符号 |
 | --- | --- | --- |
-| `cluster.py` | 完成 | `run_cluster`。调 `prepare_experiment_context` → K-Means → 写 `cluster_*`：performance/behavior/clusters/clustering.json/factor_groups/`cluster_manifest.json` |
-| `clustering.py` | 完成 | `fit_behavior_kmeans`、`select_representatives`、`_feature_matrix`。行全 NaN 则 `ValueError: each factor needs at least one finite behavior feature` |
-| `grouping.py` | 完成 | `build_factor_group_table`、`select_top_representative_group`（硬 Top-1 选群）、`expand_selected_groups_to_equal_weights`（E5）、`select_active_inner_weights`（E6）、`save_factor_groups` |
+| `cluster.py` | 完成 | `run_cluster`。调 `prepare_experiment_context` → 跳过空画像因子 → K-Means → 写 `cluster_*`：performance/behavior/clusters/clustering.json/factor_groups/`cluster_manifest.json` |
+| `clustering.py` | 完成 | `drop_empty_behavior_factors`、`fit_behavior_kmeans`、`select_representatives`、`_feature_matrix`。`run_cluster` 先丢掉画像全空的因子；`_feature_matrix` 若仍遇到空行则 `ValueError: each factor needs at least one finite behavior feature` |
+| `grouping.py` | 完成 | `build_factor_group_table`、`select_top_representative_group`（E5 硬 Top-1）、`expand_selected_groups_to_equal_weights`（E5）、`select_active_inner_weights`（旧硬选群，测试仍用）、`select_soft_top2_groups` / `blend_inner_weights_with_group_weights`（E6 主簇最短停留，`soft_top_k=1`）、`merge_small_clusters`（E5/E6，`min_size=3`）、`save_factor_groups` |
 
-`cluster_manifest.json` 记录 `data_root`、`values_run`、`state_run`、`snapshot_id`、`test_start`、`horizon`、代表因子。step4 只读这个目录。
+`cluster_manifest.json` 记录 `data_root`、`values_run`、`state_run`、`snapshot_id`、`test_start`、`horizon`、`selected_factor_ids`、`skipped_factor_ids` 和代表因子。step4 只读这个目录。
 
 ---
 
@@ -83,16 +83,16 @@
 
 | 文件 | 状态 | 作用与关键符号 |
 | --- | --- | --- |
-| `run.py` | 完成 | `parse_experiments`、`run_experiments`、`_run_e1_e4`、`_run_e5`、`_run_e6`。E1–E4 复制聚类公共文件（不含 factor_groups）；E5/E6 另复制因子群 |
+| `run.py` | 完成 | `parse_experiments`、`run_experiments`、`_run_e1_e4`、`_run_e5`、`_run_e6`。E1–E4 复制聚类公共文件（不含 factor_groups）；E5/E6 不复制原始群，写出合并后的因子群 |
 | `specs.py` | 完成 | `build_experiment_specs`：E1–E4 的 experiment_id / name / components |
-| `routing.py` | 完成 | `rolling_table`、`market_feature_frame`、`performance_tensor`、`target_tensor`、`fit_router`、`route_weights`。route：`equal` / `market` / `fused` / `full` |
+| `routing.py` | 完成 | `rolling_table`、`market_feature_frame`、`performance_tensor`、`target_tensor`、`fit_router`（`load_balance_coef` 默认 0，E5 外层与 E6 外层传 0.01）、`route_weights`。route：`equal` / `market` / `fused` / `full` |
 | `alpha.py` | 完成 | `build_alpha`：因子值 × 权重 → `date,code,alpha` |
 
 `run.py` 内部约定：
 
 - E1–E4 Alpha 过滤为**代表因子**的 values。
 - E5/E6 Alpha 用 `context.factor_values` 全候选。
-- E6 内层：每个 cluster 独立 `fit_router(..., use_performance=True)`，seed=`random_state+cluster_id+1`，rolling 特征用全部 `selected_ids` 再按成员切片。
+- E5/E6 都先 `merge_small_clusters(min_size=3)`，再训练外层（`load_balance_coef=0.01`）。E5 每日硬 Top-1 后群内等权。E6 内层：每个合并后 cluster 独立 `fit_router(..., use_performance=True)`，不传负载均衡系数，seed=`random_state+cluster_id+1`，rolling 特征用全部 `selected_ids` 再按成员切片。外层主簇最短停留 20 日，当前 `soft_top_k=1` 只用主簇。
 - 产物：E1–E4 → `experiments_*` + `experiment_suite.json`；E5 → `e5_*` + `e5_manifest.json` + `model.pt`；E6 → `e6_*` + `models/outer_router.pt` + `models/inner/cluster_XXX.pt`。
 
 ---
@@ -111,13 +111,13 @@
 | `test_selection.py` | 类别打分、选择、run_selection |
 | `test_research_metrics.py` | 未来收益、状态特征、条件 IC |
 | `test_behavior.py` | 日度绩效、滚动特征只用成熟标签 |
-| `test_clustering.py` | K-Means 可复现、代表因子最近中心 |
+| `test_clustering.py` | K-Means 可复现、代表因子最近中心、空画像因子跳过 |
 | `test_models.py` | Gumbel Top-k、FactorRouter 两路 + alpha |
 | `test_portfolio.py` | 次日执行、成本、停牌冻结 |
-| `test_step3_cluster.py` | `run_cluster` 产物 |
+| `test_step3_cluster.py` | `run_cluster` 产物；常数因子记入 `skipped_factor_ids` |
 | `test_step4_e1_e4.py` | specs 四级组件；套件写出 metrics，E1 无 model.pt、E2 有 |
-| `test_step4_e5.py` | 选群等权；E5 产物与群内 0.5 |
-| `test_step4_e6.py` | 内层只激活外层选中群；E6 双路由器文件 |
+| `test_step4_e5.py` | 选群等权；E5 产物与群内 0.5；过小簇合并与外层均匀负载均衡 |
+| `test_step4_e6.py` | 内层只激活外层选中群；E6 双路由器文件；最短停留；默认只用主簇；过小簇合并；外层均匀负载均衡 |
 | `test_old_modules_removed.py` | 旧包 ModuleNotFoundError |
 
 验收：`python -m pytest research_pipeline/tests -q`
@@ -160,4 +160,4 @@ python -m research_pipeline.MoE.run_e6
 | 路由器训练与推理 | `step4_experiments/routing.py`、`common/models.py` |
 | E1–E6 产物与流程 | `step4_experiments/run.py` |
 | 回测指标 | `common/portfolio.py` |
-| 训练期画像为空导致 cluster 失败 | `common/context.py` 的 `behavior_frame`、`common/behavior.py` 的成熟日 |
+| 训练期画像为空的因子被跳过 / 全部为空才失败 | `step3_clustering/clustering.py` 的 `drop_empty_behavior_factors`、`common/context.py` 的 `behavior_frame`、`common/behavior.py` 的成熟日 |

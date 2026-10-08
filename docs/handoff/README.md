@@ -22,7 +22,7 @@
 python -m research_pipeline <step> <action>
 ```
 
-算法、默认值、产物字段与重构前 E1–E6 一致，**不新增能力**。pytest 全量曾通过（约 49 passed）。
+算法、默认值、产物字段与重构前 E1–E6 一致。训练期画像全空的因子会在 step3 被跳过。pytest 全量曾通过（约 52 passed）。
 
 ## 接手后先做
 

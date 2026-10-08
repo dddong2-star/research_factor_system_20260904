@@ -60,8 +60,8 @@ step2 conditional → step2 select     ← 旁路
 | E2 | 仅 4 维市场特征；绩效输入置零；Softmax 稠密权重；有 `model.pt` |
 | E3 | 市场 + 9 维滚动绩效；可学习融合 `sigmoid(alpha_logit)` |
 | E4 | 在 E3 上 Gumbel Top-k（温度 0.5）+ 换手惩罚系数 0.01；`--factor-top-k` 省略=代表因子数（不稀疏） |
-| E5 | 外层同 E2；每日硬 Top-1 选群；群内等权；Alpha 用**全因子**；`e5_manifest.json` |
-| E6 | 外层硬 Top-1；每簇独立 fused 内层（seed=`random_state+cluster_id+1`）；内层用**全部训练日**；`1+K` 个模型 |
+| E5 | 运行时合并 `size<3` 的簇（不改 step3）；外层均匀负载均衡系数 0.01；每日硬 Top-1 选群；群内等权；Alpha 用**全因子**；`e5_manifest.json` |
+| E6 | 运行时合并 `size<3` 的簇（不改 step3）；外层均匀负载均衡系数 0.01；主簇最短停留 20 日（关掉 Top-2，每天只用主簇）；每合并簇独立 fused 内层（seed=`random_state+cluster_id+1`）；内层用**全部训练日**；`1+K'` 个模型 |
 
 E4 换手是已知简化：各日权重和一个共享 `previous` 比，不是相邻日递推。文档在 `docs/reference/limitations.md`。不要修成「正确换手」除非用户明确要求。
 
@@ -80,12 +80,13 @@ E4 换手是已知简化：各日权重和一个共享 `previous` 比，不是�
 
 ## 已知会踩的坑
 
-### 1. `ValueError: each factor needs at least one finite behavior feature`
+### 1. 训练期画像全空的因子会被跳过
 
-出现在 `step3_clustering/clustering.py` 的 `_feature_matrix`。  
-画像只统计 `date < test_start` 且 `label_available_date < test_start`。`label_available_date = date + horizon 个日历日`（不是交易日）。`test_start` 太早、horizon 太大、或某个因子训练期 IC 全 NaN（截面样本不足 / 因子值截面常数），**只要一个因子整行空就会失败**。
+`step3 cluster` 在 K-Means 前调用 `drop_empty_behavior_factors`：画像数值列整行都是 NaN/Inf 的因子不进聚类，写入 `skipped_factor_ids`，也不进入 step4 的 `selected_factor_ids`。日度绩效表仍保留这些因子，便于核对。
 
-同一套本地数据用 `2025-01-01` 可以成功；不要把 test_start 设到样本开头附近。
+画像只统计 `date < test_start` 且 `label_available_date < test_start`。`label_available_date = date + horizon 个日历日`（不是交易日）。`test_start` 太早、horizon 太大、或某个因子训练期 IC 全 NaN（截面样本不足 / 因子值截面常数），都会被跳过。
+
+**全部因子都被跳过**时仍报 `ValueError: each factor needs at least one finite behavior feature`（错误信息会带上 skipped 列表）。同一套本地数据用 `2025-01-01` 可以成功；不要把 test_start 设到样本开头附近。
 
 ### 2. `step2 select --correlation-threshold`
 

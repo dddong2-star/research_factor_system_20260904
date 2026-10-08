@@ -113,7 +113,7 @@ research_runs\cluster_<run_id>\
     cluster_XXX.json
 ```
 
-`cluster_manifest.json` 记录 `data_root`、`values_run`、`state_run`、`snapshot_id`、`test_start`、`horizon`、`selected_factor_ids` 和 `representatives`。`step4 run --cluster-run` 只接受该运行根目录，不再重复指定因子值或状态路径。
+`cluster_manifest.json` 记录 `data_root`、`values_run`、`state_run`、`snapshot_id`、`test_start`、`horizon`、`selected_factor_ids`、`skipped_factor_ids` 和 `representatives`。`selected_factor_ids` 只包含训练期画像非空、实际参与聚类的因子；画像全空的因子写入 `skipped_factor_ids`，不进入步骤 4。`step4 run --cluster-run` 只接受该运行根目录，不再重复指定因子值或状态路径。
 
 ## E1–E6 共同输入契约
 

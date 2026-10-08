@@ -51,14 +51,14 @@
 
 目录：`cluster_<UTC时间>_<哈希>\`
 
-- `daily_factor_performance.parquet`：每个日期、因子的 IC、Rank IC、slope、样本数和标签成熟日期。
-- `behavior_features.parquet`：训练期因子行为摘要，包含三类指标的均值、标准差和 IR。
-- `factor_clusters.parquet`：全部候选因子的 `factor_id` 与簇标签。
+- `daily_factor_performance.parquet`：每个日期、因子的 IC、Rank IC、slope、样本数和标签成熟日期；被跳过的空画像因子仍会保留在此表。
+- `behavior_features.parquet`：训练期因子行为摘要，包含三类指标的均值、标准差和 IR。只包含画像非空、实际参与聚类的因子。
+- `factor_clusters.parquet`：参与聚类的因子的 `factor_id` 与簇标签。
 - `clustering.json`：簇数、特征列、中心、惯性、代表因子、随机种子和训练截止日期。
 - `factor_groups.parquet`：因子所属簇、代表因子、是否代表、到中心距离和群大小。
 - `factor_groups.json`：所有群的汇总成员清单。
 - `factor_groups\cluster_XXX.json`：单个群的编号、代表因子、大小和成员。
-- `cluster_manifest.json`：`data_root`、`values_run`、`state_run`、`snapshot_id`、`test_start`、`horizon`、代表因子和文件清单。
+- `cluster_manifest.json`：`data_root`、`values_run`、`state_run`、`snapshot_id`、`test_start`、`horizon`、`selected_factor_ids`、`skipped_factor_ids`、代表因子和文件清单。
 
 E1–E6 都读取这一份聚类产物，不再各自重算 K-Means。
 
@@ -89,9 +89,9 @@ E2、E3、E4 额外生成 `model.pt`；E1 不生成模型文件。若 `--experim
 目录：`e5_<UTC时间>_<哈希>\`
 
 - `daily_factor_performance.parquet`、`behavior_features.parquet`、`clustering.json`：从步骤 3 复制的行为与聚类信息。
-- `factor_groups.parquet`：因子所属簇、代表因子、是否代表、到中心距离和群大小。
-- `factor_groups.json`：所有群的汇总成员清单。
-- `factor_groups\cluster_XXX.json`：单个群的编号、代表因子、大小和成员。
+- `factor_groups.parquet`：运行时合并过小簇之后的因子所属簇、代表因子、是否代表、到中心距离和群大小。
+- `factor_groups.json`：合并后所有群的汇总成员清单。
+- `factor_groups\cluster_XXX.json`：合并后单个群的编号、代表因子、大小和成员。
 - `representative_weights.parquet`：E2 式外层市场路由的每日代表因子权重。
 - `selected_groups.parquet`：每日 Top-1 代表因子、簇、外层权重和群大小。
 - `factor_weights.parquet`：被选群内全部因子的最终等权。
@@ -103,11 +103,11 @@ E2、E3、E4 额外生成 `model.pt`；E1 不生成模型文件。若 `--experim
 
 目录：`e6_<UTC时间>_<哈希>\`
 
-- 行为、聚类、因子群及分群 JSON 与 E5 同类，同样来自步骤 3。
+- 行为、聚类信息从步骤 3 复制；因子群 JSON 与 E5 同类，写的是运行时合并后的群，不是步骤 3 原件。
 - `outer_representative_weights.parquet`：外层市场路由权重。
-- `selected_groups.parquet`：每日硬 Top-1 选群。
+- `selected_groups.parquet`：每日一行主簇，含 `is_primary`、`group_weight=1`、外层代表因子权重和群大小。主簇最短停留 20 个交易日。
 - `inner_factor_weights.parquet`：所有簇、所有日期的内层动态权重。
-- `factor_weights.parquet`：仅保留当日被选簇并重新归一后的最终权重。
+- `factor_weights.parquet`：仅保留当日主簇的内层权重并按日重新归一。
 - `models\outer_router.pt`：外层模型参数。
 - `models\inner\cluster_XXX.pt`：各簇内层模型参数。
 - `inner_router_configs.json`：各内层模型的成员、随机种子和学习到的市场融合系数。
